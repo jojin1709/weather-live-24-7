@@ -401,6 +401,7 @@
         recent: "weather:recent",
         theme: "weather:theme",
       };
+      const API_KEY = "8ac5c4d57ba6a4b3dfcf622700447b1e";
 
       let currentCity = "";
       let currentTemp = 0;
@@ -529,10 +530,6 @@
             "Allow location permission or search by city.",
           ],
           api: ["Weather service error", "The API did not return usable data."],
-          setup: [
-            "Server setup needed",
-            "Set OPENWEATHER_API_KEY in your live site environment variables.",
-          ],
           empty: ["City required", "Type a city name before searching."],
         };
         const [title, message] = messages[type] || messages.api;
@@ -700,9 +697,6 @@
         return data;
       };
 
-      const weatherApiUrl = (params) =>
-        `/api/weather?${new URLSearchParams(params)}`;
-
       const fetchWeather = async (url) => {
         try {
           showLoader();
@@ -730,6 +724,14 @@
         }
       };
 
+      const openWeatherUrl = (endpoint, params) => {
+        const query = new URLSearchParams({
+          ...params,
+          appid: API_KEY,
+        });
+        return `https://api.openweathermap.org/data/2.5/${endpoint}?${query}`;
+      };
+
       const search = (cityName = elements.city.value.trim()) => {
         const query = cityName.trim();
         if (!query) {
@@ -738,7 +740,7 @@
         }
 
         elements.city.value = query;
-        fetchWeather(weatherApiUrl({ type: "current", q: query }));
+        fetchWeather(openWeatherUrl("weather", { q: query, units: "metric" }));
       };
 
       const getLocationWeather = () => {
@@ -754,10 +756,10 @@
         navigator.geolocation.getCurrentPosition(
           (position) => {
             fetchWeather(
-              weatherApiUrl({
-                type: "current",
+              openWeatherUrl("weather", {
                 lat: position.coords.latitude,
                 lon: position.coords.longitude,
+                units: "metric",
               }),
             );
           },
@@ -786,7 +788,7 @@
 
       const fetchForecast = async (lat, lon) => {
         const data = await fetchJson(
-          weatherApiUrl({ type: "forecast", lat, lon }),
+          openWeatherUrl("forecast", { lat, lon, units: "metric" }),
         );
 
         elements.hourlyForecast.innerHTML = data.list
@@ -826,7 +828,7 @@
       const fetchAirQuality = async (lat, lon) => {
         try {
           const data = await fetchJson(
-            weatherApiUrl({ type: "air", lat, lon }),
+            openWeatherUrl("air_pollution", { lat, lon }),
           );
           const item = data.list[0];
           const info = aqiInfo[item.main.aqi] || [
